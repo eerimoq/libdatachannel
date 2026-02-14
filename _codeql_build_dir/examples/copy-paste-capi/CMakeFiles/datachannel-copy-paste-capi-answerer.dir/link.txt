@@ -1,1 +1,0 @@
-/home/runner/work/libdatachannel/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/datachannel-copy-paste-capi-answerer.dir/link.d "CMakeFiles/datachannel-copy-paste-capi-answerer.dir/answerer.c.o" -o answerer-capi  -Wl,-rpath,/home/runner/work/libdatachannel/libdatachannel/_codeql_build_dir ../../libdatachannel.so.0.24.1

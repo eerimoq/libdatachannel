@@ -1,1 +1,0 @@
-/home/runner/work/libdatachannel/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/srtp_driver.dir/link.d CMakeFiles/srtp_driver.dir/test/srtp_driver.c.o CMakeFiles/srtp_driver.dir/test/util.c.o CMakeFiles/srtp_driver.dir/test/getopt_s.c.o -o srtp_driver  libsrtp2.a /usr/lib/x86_64-linux-gnu/libcrypto.so

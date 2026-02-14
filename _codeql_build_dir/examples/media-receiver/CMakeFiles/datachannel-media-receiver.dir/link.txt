@@ -1,1 +1,0 @@
-/home/runner/work/libdatachannel/.codeql-scratch/dbs/cpp/working/autobuild/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/datachannel-media-receiver.dir/link.d "CMakeFiles/datachannel-media-receiver.dir/main.cpp.o" -o media-receiver  -Wl,-rpath,/home/runner/work/libdatachannel/libdatachannel/_codeql_build_dir ../../libdatachannel.so.0.24.1
