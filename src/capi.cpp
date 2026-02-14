@@ -1493,6 +1493,17 @@ int rtcGetLastTrackSenderReportTimestamp(int id, uint32_t *timestamp) {
 	});
 }
 
+int rtcGetTrackRtt(int tr) {
+	return wrap([&] {
+		auto reporter = getRtcpSrReporter(tr);
+
+		if (auto rtt = reporter->rtt())
+			return int(rtt->count());
+		else
+			return RTC_ERR_NOT_AVAIL;
+	});
+}
+
 int rtcGetTrackPayloadTypesForCodec(int tr, const char *ccodec, int *buffer, int size) {
 	return wrap([&] {
 		auto track = getTrack(tr);

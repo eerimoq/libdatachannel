@@ -15,6 +15,7 @@
 #include "rtp.hpp"
 #include "rtppacketizationconfig.hpp"
 
+#include <atomic>
 #include <chrono>
 
 namespace rtc {
@@ -27,7 +28,10 @@ public:
 	uint32_t lastReportedTimestamp() const;
 	[[deprecated]] void setNeedsToReport();
 
+	void incoming(message_vector &messages, const message_callback &send) override;
 	void outgoing(message_vector &messages, const message_callback &send) override;
+
+	optional<std::chrono::milliseconds> rtt() const;
 
 	// TODO: remove this
 	const shared_ptr<RtpPacketizationConfig> rtpConfig;
@@ -40,6 +44,7 @@ private:
 	uint32_t mPayloadOctets = 0;
 	uint32_t mLastReportedTimestamp = 0;
 	std::chrono::steady_clock::time_point mLastReportTime;
+	std::atomic<int64_t> mRtt{-1}; // last RTT in milliseconds, -1 if not available
 };
 
 } // namespace rtc

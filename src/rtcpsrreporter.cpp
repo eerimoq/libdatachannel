@@ -14,6 +14,12 @@
 #include <chrono>
 #include <cmath>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
+
 using namespace std::chrono_literals;
 
 namespace {
@@ -40,6 +46,69 @@ void RtcpSrReporter::setNeedsToReport() {
 
 uint32_t RtcpSrReporter::lastReportedTimestamp() const { return mLastReportedTimestamp; }
 
+optional<std::chrono::milliseconds> RtcpSrReporter::rtt() const {
+	auto value = mRtt.load();
+	if (value >= 0)
+		return std::chrono::milliseconds(value);
+	else
+		return nullopt;
+}
+
+void RtcpSrReporter::incoming(message_vector &messages,
+                               [[maybe_unused]] const message_callback &send) {
+	for (const auto &message : messages) {
+		if (message->type != Message::Control)
+			continue;
+
+		size_t offset = 0;
+		while (offset + sizeof(RtcpHeader) <= message->size()) {
+			auto header = reinterpret_cast<const RtcpHeader *>(message->data() + offset);
+			uint8_t payloadType = header->payloadType();
+			size_t length = header->lengthInBytes();
+
+			if (length == 0 || offset + length > message->size())
+				break;
+
+			// Process Receiver Reports (PT=201)
+			if (payloadType == 201 && length >= sizeof(RtcpRr)) {
+				printf("xxx got RR\n");
+				auto rr = reinterpret_cast<const RtcpRr *>(message->data() + offset);
+				int reportCount = header->reportCount();
+				for (int i = 0; i < reportCount; ++i) {
+					if (offset + sizeof(RtcpHeader) + sizeof(SSRC) +
+					        (i + 1) * sizeof(RtcpReportBlock) >
+					    message->size())
+						break;
+					auto block = rr->getReportBlock(i);
+					if (block->getSSRC() != rtpConfig->ssrc)
+						continue;
+
+					uint32_t lastSR = ntohl(block->_lastReport);
+					uint32_t dlsr = block->delaySinceSR();
+					if (lastSR == 0)
+						continue;
+
+					// Compute compact NTP (middle 32 bits of 64-bit NTP timestamp)
+					uint32_t nowCompact = uint32_t(ntp_time() >> 16);
+
+					// Sanity check: if the result would underflow, skip
+					if (nowCompact <= lastSR || nowCompact - lastSR <= dlsr)
+						continue;
+
+					uint32_t rttCompact = nowCompact - lastSR - dlsr;
+
+					// Convert from 1/65536 seconds to milliseconds
+					auto rttMs = int64_t(
+					    (double(rttCompact) / 65536.0) * 1000.0);
+					mRtt.store(rttMs);
+				}
+			}
+
+			offset += length;
+		}
+	}
+}
+
 void RtcpSrReporter::outgoing(message_vector &messages, const message_callback &send) {
 	if (messages.empty())
 		return;
@@ -63,6 +132,7 @@ void RtcpSrReporter::outgoing(message_vector &messages, const message_callback &
 
 	auto now = std::chrono::steady_clock::now();
 	if (now >= mLastReportTime + 1s) {
+		printf("xxx sending SR\n");
 		send(getSenderReport(timestamp));
 		mLastReportedTimestamp = timestamp;
 		mLastReportTime = now;

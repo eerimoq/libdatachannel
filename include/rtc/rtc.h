@@ -450,6 +450,10 @@ RTC_C_EXPORT int rtcSetTrackRtpTimestamp(int id, uint32_t timestamp);
 // Get timestamp of last RTCP SR, result is written to timestamp
 RTC_C_EXPORT int rtcGetLastTrackSenderReportTimestamp(int id, uint32_t *timestamp);
 
+// Get RTP round-trip time from RTCP receiver reports in milliseconds
+// Requires rtcChainRtcpSrReporter to be chained on the track
+RTC_C_EXPORT int rtcGetTrackRtt(int tr); // negative if not available
+
 // Get all available payload types for given codec and stores them in buffer, does nothing if
 // buffer is NULL
 int rtcGetTrackPayloadTypesForCodec(int tr, const char *ccodec, int *buffer, int size);
