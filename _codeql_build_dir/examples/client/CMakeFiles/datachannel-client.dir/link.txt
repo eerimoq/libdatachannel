@@ -1,0 +1,1 @@
+/home/runner/work/libdatachannel/.codeql-scratch/dbs/cpp/working/autobuild/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/datachannel-client.dir/link.d "CMakeFiles/datachannel-client.dir/main.cpp.o" "CMakeFiles/datachannel-client.dir/parse_cl.cpp.o" -o client  -Wl,-rpath,/home/runner/work/libdatachannel/libdatachannel/_codeql_build_dir ../../libdatachannel.so.0.24.1

@@ -1,0 +1,1 @@
+/home/runner/work/libdatachannel/.codeql-scratch/dbs/cpp/working/autobuild/bin/c++ -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/datachannel-copy-paste-answerer.dir/link.d "CMakeFiles/datachannel-copy-paste-answerer.dir/answerer.cpp.o" -o answerer  -Wl,-rpath,/home/runner/work/libdatachannel/libdatachannel/_codeql_build_dir ../../libdatachannel.so.0.24.1

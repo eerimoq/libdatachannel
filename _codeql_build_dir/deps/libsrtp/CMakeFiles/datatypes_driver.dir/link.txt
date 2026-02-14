@@ -1,0 +1,1 @@
+/home/runner/work/libdatachannel/.codeql-scratch/dbs/cpp/working/autobuild/bin/cc -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/datatypes_driver.dir/link.d CMakeFiles/datatypes_driver.dir/crypto/test/datatypes_driver.c.o CMakeFiles/datatypes_driver.dir/test/util.c.o -o datatypes_driver  libsrtp2.a /usr/lib/x86_64-linux-gnu/libcrypto.so
