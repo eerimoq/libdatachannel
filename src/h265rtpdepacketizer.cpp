@@ -15,6 +15,13 @@
 #include "impl/internals.hpp"
 
 #include <algorithm>
+#include <cstring>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#else
+#include <arpa/inet.h>
+#endif
 
 namespace rtc {
 
@@ -25,9 +32,9 @@ const uint8_t naluTypeAP = 48;
 const uint8_t naluTypeFU = 49;
 
 H265RtpDepacketizer::H265RtpDepacketizer(Separator separator) : mSeparator(separator) {
-	if (separator != Separator::StartSequence && separator != Separator::LongStartSequence &&
-	    separator != Separator::ShortStartSequence) {
-		throw std::invalid_argument("Unimplemented H265 separator");
+	if (separator != Separator::Length && separator != Separator::StartSequence &&
+	    separator != Separator::LongStartSequence && separator != Separator::ShortStartSequence) {
+		throw std::invalid_argument("Unknown H265 separator");
 	}
 }
 
@@ -143,11 +150,19 @@ message_ptr H265RtpDepacketizer::reassemble(message_buffer &buffer) {
 		}
 	}
 
+	updateSeparator(frame);
+
 	return make_message(std::move(frame), createFrameInfo(timestamp, payloadType));
 }
 
 void H265RtpDepacketizer::addSeparator(binary &frame) {
+	updateSeparator(frame);
+
 	switch (mSeparator) {
+	case Separator::Length:
+		mLengthPosition = frame.size();
+		frame.insert(frame.end(), 4, byte{0});
+		break;
 	case Separator::StartSequence:
 		[[fallthrough]];
 	case Separator::LongStartSequence:
@@ -159,6 +174,15 @@ void H265RtpDepacketizer::addSeparator(binary &frame) {
 	default:
 		throw std::invalid_argument("Invalid separator");
 	}
+}
+
+void H265RtpDepacketizer::updateSeparator(binary &frame) {
+	if (mSeparator != Separator::Length || mLengthPosition == size_t(-1))
+		return;
+
+	uint32_t length = htonl(uint32_t(frame.size() - mLengthPosition - 4));
+	std::memcpy(frame.data() + mLengthPosition, &length, sizeof(uint32_t));
+	mLengthPosition = size_t(-1);
 }
 
 } // namespace rtc

@@ -34,8 +34,10 @@ public:
 private:
 	message_ptr reassemble(message_buffer &buffer);
 	void addSeparator(binary &frame);
+	void updateSeparator(binary &frame);
 
 	const NalUnit::Separator mSeparator;
+	size_t mLengthPosition = size_t(-1);
 };
 
 } // namespace rtc
