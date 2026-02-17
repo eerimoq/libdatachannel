@@ -177,12 +177,16 @@ void H265RtpDepacketizer::addSeparator(binary &frame) {
 }
 
 void H265RtpDepacketizer::updateSeparator(binary &frame) {
-	if (mSeparator != Separator::Length || mLengthPosition == size_t(-1))
+	if (mSeparator != Separator::Length || !mLengthPosition)
 		return;
 
-	uint32_t length = htonl(uint32_t(frame.size() - mLengthPosition - 4));
-	std::memcpy(frame.data() + mLengthPosition, &length, sizeof(uint32_t));
-	mLengthPosition = size_t(-1);
+	auto pos = *mLengthPosition;
+	if (frame.size() < pos + 4)
+		return;
+
+	uint32_t length = htonl(uint32_t(frame.size() - pos - 4));
+	std::memcpy(frame.data() + pos, &length, sizeof(uint32_t));
+	mLengthPosition.reset();
 }
 
 } // namespace rtc

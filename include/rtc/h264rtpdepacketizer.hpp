@@ -34,7 +34,7 @@ private:
 	void updateSeparator(binary &frame);
 
 	const NalUnit::Separator mSeparator;
-	size_t mLengthPosition = size_t(-1);
+	std::optional<size_t> mLengthPosition;
 };
 
 } // namespace rtc
