@@ -31,8 +31,10 @@ public:
 private:
 	message_ptr reassemble(message_buffer &buffer) override;
 	void addSeparator(binary &frame);
+	void updateSeparator(binary &frame);
 
 	const NalUnit::Separator mSeparator;
+	std::optional<size_t> mLengthPosition;
 };
 
 } // namespace rtc
