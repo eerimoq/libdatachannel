@@ -38,6 +38,7 @@ TestResult test_rtx_description_addrtx();
 TestResult test_rtx_description_addrtx_no_audio();
 TestResult test_rtx_dropped_packet();
 TestResult test_rtx_multi_codec();
+TestResult test_rtx_capi();
 TestResult test_rtcp_app_single_packet();
 TestResult test_rtcp_app_compound_packet();
 TestResult test_rtcp_app_empty_data();
@@ -120,6 +121,7 @@ static const vector<Test> tests = {
     Test("WebRTC C API connectivity", test_capi_connectivity),
 #if RTC_ENABLE_MEDIA
     Test("WebRTC C API track", test_capi_track),
+    Test("RTX C API", test_rtx_capi),
 #endif
 #if RTC_ENABLE_WEBSOCKET
     Test("WebSocketServer C API", test_capi_websocketserver),

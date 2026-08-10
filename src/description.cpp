@@ -490,6 +490,35 @@ static std::vector<int> availablePayloadTypes(const Description::Media *media) {
 	return availablePt;
 }
 
+void Description::Media::addRtx(optional<unsigned int> clockRate) {
+	// Collect non-RTX codecs that don't already have an RTX entry
+	std::vector<int> codecsNeedingRtx;
+	for (int pt : payloadTypes()) {
+		auto *rtp = rtpMap(pt);
+		if (rtp->format == "RTX" || rtp->format == "rtx")
+			continue;
+		if (getRtxPayloadType(pt).has_value())
+			continue;
+		codecsNeedingRtx.push_back(pt);
+	}
+
+	// Find available dynamic payload types via set difference
+	auto availablePt = availablePayloadTypes(this);
+	std::reverse(availablePt.begin(), availablePt.end());
+
+	for (int origPt : codecsNeedingRtx) {
+		if (availablePt.empty())
+			break;
+
+		int rtxPt = availablePt.back();
+		availablePt.pop_back();
+
+		auto *rtp = rtpMap(origPt);
+		unsigned int rate = clockRate.value_or(rtp->clockRate);
+		addRtxCodec(rtxPt, origPt, rate);
+	}
+}
+
 void Description::addRtx(optional<unsigned int> clockRate, bool audio) {
 	for (int i = 0; i < mediaCount(); ++i) {
 		if (!std::holds_alternative<Media *>(media(i)))
@@ -504,32 +533,7 @@ void Description::addRtx(optional<unsigned int> clockRate, bool audio) {
 		if (mediaType != "audio" && mediaType != "video")
 			continue;
 
-		// Collect non-RTX codecs that don't already have an RTX entry
-		std::vector<int> codecsNeedingRtx;
-		for (int pt : med->payloadTypes()) {
-			auto *rtp = med->rtpMap(pt);
-			if (rtp->format == "RTX" || rtp->format == "rtx")
-				continue;
-			if (med->getRtxPayloadType(pt).has_value())
-				continue;
-			codecsNeedingRtx.push_back(pt);
-		}
-
-		// Find available dynamic payload types via set difference
-		auto availablePt = availablePayloadTypes(med);
-		std::reverse(availablePt.begin(), availablePt.end());
-
-		for (int origPt : codecsNeedingRtx) {
-			if (availablePt.empty())
-				break;
-
-			int rtxPt = availablePt.back();
-			availablePt.pop_back();
-
-			auto *rtp = med->rtpMap(origPt);
-			unsigned int rate = clockRate.value_or(rtp->clockRate);
-			med->addRtxCodec(rtxPt, origPt, rate);
-		}
+		med->addRtx(clockRate);
 	}
 }
 

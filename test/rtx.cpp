@@ -6,6 +6,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#include "rtc/rtc.h"
 #include "rtc/rtc.hpp"
 #include "rtc/rtp.hpp"
 #include "test.hpp"
@@ -807,4 +808,113 @@ TestResult test_rtx_multi_codec() {
 
 	cout << "Multi-codec RTX test passed" << endl;
 	return TestResult(true);
+}
+
+// Unit test: enabling and disabling RTX on a track through the C API.
+TestResult test_rtx_capi() {
+	rtcInitLogger(RTC_LOG_DEBUG, nullptr);
+
+	rtcConfiguration config = {};
+	int pc = rtcCreatePeerConnection(&config);
+	if (pc < 0)
+		return TestResult(false, "rtcCreatePeerConnection failed");
+
+	int tr = -1;
+	auto cleanup = [pc, &tr](bool success, string reason = "") {
+		if (tr >= 0)
+			rtcDeleteTrack(tr);
+
+		rtcDeletePeerConnection(pc);
+		return TestResult(success, reason);
+	};
+
+	rtcTrackInit trackInit = {};
+	trackInit.direction = RTC_DIRECTION_SENDONLY;
+	trackInit.codec = RTC_CODEC_H264;
+	trackInit.payloadType = PRIMARY_PT;
+	trackInit.ssrc = PRIMARY_SSRC;
+	trackInit.mid = "video";
+	trackInit.name = CNAME;
+
+	tr = rtcAddTrackEx(pc, &trackInit);
+	if (tr < 0)
+		return cleanup(false, "rtcAddTrackEx failed");
+
+	if (rtcIsTrackRtxEnabled(tr) != 0)
+		return cleanup(false, "RTX should not be enabled before rtcEnableTrackRtx()");
+
+	rtcRtxInit rtxInit = {};
+	rtxInit.ssrc = RTX_SSRC;
+	if (rtcEnableTrackRtx(tr, &rtxInit) != RTC_ERR_SUCCESS)
+		return cleanup(false, "rtcEnableTrackRtx failed");
+
+	if (rtcIsTrackRtxEnabled(tr) != 1)
+		return cleanup(false, "RTX should be enabled after rtcEnableTrackRtx()");
+
+	char buffer[4096];
+	if (rtcGetTrackDescription(tr, buffer, sizeof(buffer)) < 0)
+		return cleanup(false, "rtcGetTrackDescription failed");
+
+	string description(buffer);
+	cout << "Track description with RTX:" << endl << description << endl;
+
+	if (description.find("rtx/" + to_string(CLOCK_RATE)) == string::npos)
+		return cleanup(false, "Description is missing the RTX codec");
+
+	if (description.find("apt=" + to_string(PRIMARY_PT)) == string::npos)
+		return cleanup(false, "Description is missing the RTX apt parameter");
+
+	if (description.find("ssrc-group:FID " + to_string(PRIMARY_SSRC) + " " +
+	                     to_string(RTX_SSRC)) == string::npos)
+		return cleanup(false, "Description is missing the RTX ssrc-group");
+
+	if (description.find("ssrc:" + to_string(RTX_SSRC) + " cname:" + CNAME) == string::npos)
+		return cleanup(false, "RTX SSRC did not inherit the primary SSRC cname");
+
+	// Enabling twice must not add duplicate RTX codecs
+	if (rtcEnableTrackRtx(tr, &rtxInit) != RTC_ERR_SUCCESS)
+		return cleanup(false, "Second rtcEnableTrackRtx failed");
+
+	if (rtcGetTrackDescription(tr, buffer, sizeof(buffer)) < 0)
+		return cleanup(false, "rtcGetTrackDescription failed");
+
+	int payloadTypes[16];
+	int count = rtcGetTrackPayloadTypesForCodec(tr, "rtx", payloadTypes, 16);
+	if (count != 1)
+		return cleanup(false, "Expected exactly 1 RTX payload type, got " + to_string(count));
+
+	if (rtcDisableTrackRtx(tr) != RTC_ERR_SUCCESS)
+		return cleanup(false, "rtcDisableTrackRtx failed");
+
+	if (rtcIsTrackRtxEnabled(tr) != 0)
+		return cleanup(false, "RTX should not be enabled after rtcDisableTrackRtx()");
+
+	if (rtcGetTrackDescription(tr, buffer, sizeof(buffer)) < 0)
+		return cleanup(false, "rtcGetTrackDescription failed");
+
+	description = string(buffer);
+	if (description.find("rtx/") != string::npos ||
+	    description.find("ssrc-group:FID") != string::npos ||
+	    description.find("ssrc:" + to_string(RTX_SSRC)) != string::npos)
+		return cleanup(false, "Description still contains RTX after rtcDisableTrackRtx()");
+
+	// Without init, RTX payload types are signaled but no RTX SSRC is associated
+	if (rtcEnableTrackRtx(tr, nullptr) != RTC_ERR_SUCCESS)
+		return cleanup(false, "rtcEnableTrackRtx with null init failed");
+
+	if (rtcIsTrackRtxEnabled(tr) != 1)
+		return cleanup(false, "RTX should be enabled after rtcEnableTrackRtx(tr, NULL)");
+
+	if (rtcGetTrackDescription(tr, buffer, sizeof(buffer)) < 0)
+		return cleanup(false, "rtcGetTrackDescription failed");
+
+	description = string(buffer);
+	if (description.find("rtx/" + to_string(CLOCK_RATE)) == string::npos)
+		return cleanup(false, "Description is missing the RTX codec");
+
+	if (description.find("ssrc-group:FID") != string::npos)
+		return cleanup(false, "Description should not contain an ssrc-group without RTX SSRC");
+
+	cout << "RTX C API test passed" << endl;
+	return cleanup(true);
 }

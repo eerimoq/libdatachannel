@@ -322,6 +322,13 @@ typedef struct {
 	const char *profile; // optional, codec profile
 } rtcTrackInit;
 
+typedef struct {
+	uint32_t ssrc;          // SSRC of the RTX stream, 0 to only signal RTX payload types
+	uint32_t primarySsrc;   // SSRC to associate the RTX stream with, 0 for the first track SSRC
+	unsigned int clockRate; // optional, 0 to use the clock rate of the primary codec
+	const char *cname;      // optional, defaults to the CNAME of the primary SSRC
+} rtcRtxInit;
+
 RTC_C_EXPORT int rtcSetTrackCallback(int pc, rtcTrackCallbackFunc cb);
 RTC_C_EXPORT int rtcAddTrack(int pc, const char *mediaDescriptionSdp); // returns tr id
 RTC_C_EXPORT int rtcAddTrackEx(int pc, const rtcTrackInit *init);      // returns tr id
@@ -330,6 +337,11 @@ RTC_C_EXPORT int rtcDeleteTrack(int tr);
 RTC_C_EXPORT int rtcGetTrackDescription(int tr, char *buffer, int size);
 RTC_C_EXPORT int rtcGetTrackMid(int tr, char *buffer, int size);
 RTC_C_EXPORT int rtcGetTrackDirection(int tr, rtcDirection *direction);
+
+// Enable RTX (RFC 4588 retransmission) on a track, init may be NULL for default values
+RTC_C_EXPORT int rtcEnableTrackRtx(int tr, const rtcRtxInit *init);
+RTC_C_EXPORT int rtcDisableTrackRtx(int tr);
+RTC_C_EXPORT int rtcIsTrackRtxEnabled(int tr); // returns 1 if enabled, 0 if not
 
 RTC_C_EXPORT int rtcRequestKeyframe(int tr);
 RTC_C_EXPORT int rtcRequestBitrate(int tr, unsigned int bitrate);

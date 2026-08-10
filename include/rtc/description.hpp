@@ -294,6 +294,10 @@ public:
 
 		void addRtxCodec(int payloadType, int origPayloadType, unsigned int clockRate);
 
+		// Adds an RTX payload type for each codec which doesn't have one yet, picking free
+		// dynamic payload types. For per-stream RTX, also call addRtxSSRC() once SSRCs are known.
+		void addRtx(optional<unsigned int> clockRate = nullopt);
+
 		optional<int> getRtxPayloadType(int primaryPayloadType) const;
 
 		bool isRtxEnabled() const;

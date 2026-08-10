@@ -1219,6 +1219,51 @@ int rtcGetTrackDirection(int tr, rtcDirection *direction) {
 	});
 }
 
+int rtcEnableTrackRtx(int tr, const rtcRtxInit *init) {
+	return wrap([&] {
+		auto track = getTrack(tr);
+		auto description = track->description();
+
+		unsigned int clockRate = init ? init->clockRate : 0;
+		description.addRtx(clockRate > 0 ? std::make_optional(clockRate) : nullopt);
+
+		if (init && init->ssrc) {
+			uint32_t primarySsrc = init->primarySsrc;
+			if (primarySsrc == 0) {
+				auto ssrcs = description.getSSRCs();
+				if (ssrcs.empty())
+					throw std::invalid_argument("Track has no SSRC to associate the RTX SSRC to");
+
+				primarySsrc = ssrcs[0];
+			}
+
+			auto cname = init->cname ? std::make_optional(string(init->cname))
+			                         : description.getCNameForSsrc(primarySsrc);
+			description.addRtxSSRC(primarySsrc, init->ssrc, std::move(cname));
+		}
+
+		track->setDescription(std::move(description));
+		return RTC_ERR_SUCCESS;
+	});
+}
+
+int rtcDisableTrackRtx(int tr) {
+	return wrap([&] {
+		auto track = getTrack(tr);
+		auto description = track->description();
+		description.disableRtx();
+		track->setDescription(std::move(description));
+		return RTC_ERR_SUCCESS;
+	});
+}
+
+int rtcIsTrackRtxEnabled(int tr) {
+	return wrap([&] {
+		auto track = getTrack(tr);
+		return track->description().isRtxEnabled() ? 1 : 0;
+	});
+}
+
 int rtcRequestKeyframe(int tr) {
 	return wrap([&] {
 		auto track = getTrack(tr);

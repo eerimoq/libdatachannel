@@ -927,6 +927,58 @@ Arguments:
 
 On success, the value pointed by `direction` will be set to one of the following: `RTC_DIRECTION_SENDONLY`, `RTC_DIRECTION_RECVONLY`, `RTC_DIRECTION_SENDRECV`, `RTC_DIRECTION_INACTIVE`, or `RTC_DIRECTION_UNKNOWN`.
 
+#### rtcEnableTrackRtx
+
+```
+int rtcEnableTrackRtx(int tr, const rtcRtxInit *init)
+```
+
+Enables RTX (RFC 4588 retransmission) on a Track by adding an `rtx` payload type for each of its codecs, and optionally an RTX SSRC associated with one of the Track SSRCs. Calling it again on a Track which already has RTX enabled does not add duplicate payload types.
+
+Arguments:
+
+- `tr`: the Track identifier
+- `init`: a structure of type `rtcRtxInit` with the RTX properties, may be `NULL` to only signal the RTX payload types
+
+`rtcRtxInit` has the following members:
+
+- `uint32_t ssrc`: the SSRC of the RTX stream, or `0` to not associate any RTX SSRC
+- `uint32_t primarySsrc`: the SSRC to associate the RTX stream with, or `0` for the first SSRC of the Track
+- `unsigned int clockRate`: the clock rate of the RTX payload types, or `0` to use the clock rate of the primary codec
+- `const char *cname`: the CNAME of the RTX SSRC, or `NULL` to use the CNAME of the primary SSRC
+
+Return value: `RTC_ERR_SUCCESS` or a negative error code
+
+An RTX SSRC is required to send retransmissions, therefore `init` must be set with a non-zero `ssrc` on a sending Track. Note RTX is negotiated with the remote peer: it is automatically disabled on the Track if the remote description does not signal RTX support.
+
+#### rtcDisableTrackRtx
+
+```
+int rtcDisableTrackRtx(int tr)
+```
+
+Disables RTX on a Track by removing its RTX payload types and RTX SSRCs.
+
+Arguments:
+
+- `tr`: the Track identifier
+
+Return value: `RTC_ERR_SUCCESS` or a negative error code
+
+#### rtcIsTrackRtxEnabled
+
+```
+int rtcIsTrackRtxEnabled(int tr)
+```
+
+Tells whether RTX is enabled on a Track.
+
+Arguments:
+
+- `tr`: the Track identifier
+
+Return value: `1` if RTX is enabled, `0` if it is not, or a negative error code
+
 #### rtcRequestKeyframe
 
 ```
